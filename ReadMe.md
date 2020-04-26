@@ -1,4 +1,4 @@
-#概述
+# 概述
 `WeChatPC` 是一款 微信多开工具。
 
 本文主要使用代码实现多开，简单修改可破除类似原理的网络游戏限制多开。
@@ -8,6 +8,9 @@
 ### 主要特征
 * 支持无限多开。
 * 一键启动微信。
+
+### 下载地址
+https://github.com/cheungxiongwei/WeChatPC/releases/download/1.0/WeChatPC.rar
 
 ### 源代码编译
 `git clone https://github.com/cheungxiongwei/WeChatPC.git`
