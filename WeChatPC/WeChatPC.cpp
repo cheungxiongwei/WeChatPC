@@ -14,12 +14,12 @@ static wchar_t* GetWeChatPCPath()
 	//printf("%d\r\n", lstrlenW(path));
 	if (path[0] != '\0')return path;
 	HKEY hKey = NULL;
-	if (ERROR_SUCCESS != RegOpenKey(HKEY_CURRENT_USER, L"Software\\Tencent\\WeChat", &hKey)) {
+	if (ERROR_SUCCESS != RegOpenKey(HKEY_CURRENT_USER, LR"(Software\Tencent\WeChat)", &hKey)) {
 		return nullptr;
 	}
 
 	DWORD lpcbData = 256;
-	if (ERROR_SUCCESS != RegQueryValueEx(hKey, L"InstallPath", NULL, NULL, (LPBYTE)path, &lpcbData)) {
+	if (ERROR_SUCCESS != RegQueryValueEx(hKey, LR"(InstallPath)", NULL, NULL, (LPBYTE)path, &lpcbData)) {
 		RegCloseKey(hKey);
 		return nullptr;
 	}
@@ -33,14 +33,13 @@ static HANDLE DuplicateHandleEx(DWORD pid, HANDLE handle, DWORD flags)
 {
 	HANDLE hHandle = NULL;
 
-	HANDLE hProc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
-	if (hProc) {
-		if (!DuplicateHandle(hProc, (HANDLE)handle, GetCurrentProcess(), &hHandle, NULL, FALSE, /*DUPLICATE_SAME_ACCESS*/flags)) {
+	HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+	if (hProcess) {
+		if (!DuplicateHandle(hProcess, (HANDLE)handle, GetCurrentProcess(), &hHandle, NULL, FALSE, /*DUPLICATE_SAME_ACCESS*/flags)) {
 			hHandle = NULL;
 		}
+		CloseHandle(hProcess);
 	}
-
-	CloseHandle(hProc);
 	return hHandle;
 }
 
@@ -54,8 +53,7 @@ static BOOL ElevatePrivileges()
 		return FALSE;
 	LookupPrivilegeValue(NULL, SE_DEBUG_NAME, &tkp.Privileges[0].Luid);
 	tkp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-	if (!AdjustTokenPrivileges(hToken, FALSE, &tkp, sizeof(TOKEN_PRIVILEGES), NULL, NULL))
-	{
+	if (!AdjustTokenPrivileges(hToken, FALSE, &tkp, sizeof(TOKEN_PRIVILEGES), NULL, NULL)){
 		return FALSE;
 	}
 
@@ -63,7 +61,7 @@ static BOOL ElevatePrivileges()
 }
 
 //枚举目标进程列表
-std::vector<unsigned long> TraverseWechatProcesses()
+std::vector<unsigned long> TraverseWechatProcesses(const wchar_t *tragetName = LR"(WeChat.exe)")
 {
 	ULONG bufferSize = 0;
 
@@ -76,9 +74,9 @@ std::vector<unsigned long> TraverseWechatProcesses()
 			status = ZwQuerySystemInformation(SystemProcessesAndThreadsInformation, pBuffer, bufferSize, NULL);
 			if (status == STATUS_SUCCESS) {
 				PSYSTEM_PROCESSES processEntry = (PSYSTEM_PROCESSES)pBuffer;
-				do
-				{
-					if (processEntry->ProcessName.Length == 20 && memcmp(processEntry->ProcessName.Buffer, L"WeChat.exe", 20) == 0) {
+				do{
+					if (processEntry->ProcessName.Length > 0 && wcscmp(processEntry->ProcessName.Buffer, tragetName) == 0) {
+						//wprintf(L"%ws\r\n", processEntry->ProcessName.Buffer);
 						set.push_back(processEntry->ProcessId);
 					}
 					processEntry = (PSYSTEM_PROCESSES)((BYTE*)processEntry + processEntry->NextEntryDelta);
@@ -94,14 +92,13 @@ std::vector<unsigned long> TraverseWechatProcesses()
 }
 
 //枚举全局句柄表并关闭符合指定目标的互斥体
-static void DetachTargetHandle(const wchar_t *handleType = L"Mutant", const wchar_t *handleName = L"_WeChat_App_Instance_Identity_Mutex_Name")
+static void DetachTargetHandle(const wchar_t *handleType = LR"(Mutant)", const wchar_t *handleName = LR"(_WeChat_App_Instance_Identity_Mutex_Name)")
 {
 	ULONG bufferSize = NULL;
 	PVOID pBuffer = NULL;
 
 	std::vector<unsigned long> set = TraverseWechatProcesses();
-	do
-	{
+	do{
 		pBuffer = VirtualAlloc(NULL, 0x1000, MEM_COMMIT, PAGE_READWRITE);
 		if (!pBuffer)break;
 
@@ -114,7 +111,7 @@ static void DetachTargetHandle(const wchar_t *handleType = L"Mutant", const wcha
 				break;
 			}
 
-			pBuffer = VirtualAlloc(NULL, bufferSize * 2, MEM_COMMIT, PAGE_READWRITE);
+			pBuffer = VirtualAlloc(NULL, (SIZE_T)bufferSize * 2, MEM_COMMIT, PAGE_READWRITE);
 			if (!pBuffer)break;
 
 			status = ZwQuerySystemInformation(SystemHandleInformation, pBuffer, bufferSize * 2, NULL);
@@ -197,17 +194,17 @@ WeChatPC::WeChatPC()
 {
 	g_Module = GetModuleHandle(L"ntdll.dll");
 	if (g_Module == NULL) {
-		throw u8"ntdd.dll 模块未加载";
+		throw R"(ntdd.dll 模块未加载)";
 	}
 
 	ZwQuerySystemInformation = ZwQuerySystemInformation = (ZWQUERYSYSTEMINFORMATION)GetProcAddress(g_Module, "ZwQuerySystemInformation");
 	if (ZwQuerySystemInformation == NULL) {
-		throw u8"ZwQuerySystemInformation 函数地址获取失败";
+		throw R"(ZwQuerySystemInformation 函数地址获取失败)";
 	}
 
 	NtQueryObject = (NTQUERYOBJECT)GetProcAddress(g_Module, "NtQueryObject");
 	if (NtQueryObject == NULL) {
-		throw u8"NtQueryObject 函数地址获取失败";
+		throw R"(NtQueryObject 函数地址获取失败)";
 	}
 }
 
