@@ -19,6 +19,8 @@ https://github.com/cheungxiongwei/WeChatPC/releases/download/1.0/WeChatPC.rar
 
 使用 VS2010 或更高版本 打开 `WeChatPC.sln` 项目文件，正常编译即可。
 
+> 注意：一定要选择 x86 进行编译。
+
 ### 主要原理
 微信使用互斥体作为限制，正常情况下使其仅能开启一个客户端。
 通过使用 `火绒工具` 查看目标进程句柄列表，可发现`红色标记框`中的2个句柄关闭后，即可继续开启微信。
