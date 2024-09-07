@@ -36,5 +36,8 @@ https://github.com/cheungxiongwei/WeChatPC/releases/download/1.0/WeChatPC.rar
 
 ![](./images/Snipaste_2020-04-26_10-45-44.jpg)
 
+参考内部未记录的函数
+https://www.geoffchappell.com/index.htm
+
 ### 声明
 本项目仅供技术研究，请勿用于任何商业用途，请勿用于非法用途，如有任何人凭此做何非法事情，均于作者无关，特此声明
